@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Censo Hospitalario</title>
+<style>
+  :root{
+    --navy-900:#0a1f3d;
+    --navy-800:#0f3057;
+    --navy-700:#16406f;
+    --teal:#0c7c92;
+    --teal-light:#e6f2f4;
+    --ink:#1c2b36;
+    --muted:#5c7078;
+    --line:#dfe6ea;
+    --paper:#eef2f5;
+    --stripe:#f4f8f9;
+    --gold:#a8802f;
+    --card-shadow: 0 1px 2px rgba(15,48,87,.06), 0 12px 32px -16px rgba(10,31,61,.28);
+    --print-font-size: 14px;
+    --print-pad-h: 4px;
+    --print-row-height: 20px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 480px at 12% -10%, #ffffff 0%, transparent 55%),
+      linear-gradient(180deg, #eef2f6 0%, var(--paper) 320px);
+    color:var(--ink);
+    font-family:"Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    padding:32px 24px 48px;
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:1400px;
+    margin:0 auto;
+  }
+  header.top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    background:linear-gradient(135deg, var(--navy-900), var(--navy-700));
+    border-radius:16px;
+    padding:22px 26px 20px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    gap:14px;
+    box-shadow: var(--card-shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  header.top::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      linear-gradient(115deg, rgba(255,255,255,.08) 0%, transparent 40%),
+      radial-gradient(320px 200px at 100% 0%, rgba(12,124,146,.35), transparent 70%);
+    pointer-events:none;
+  }
+  .title-group{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    position:relative;
+  }
+  .title-mark{
+    width:42px;
+    height:42px;
+    flex:0 0 auto;
+    border-radius:12px;
+    background:linear-gradient(150deg, var(--teal), #0a5464);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.5px;
+    box-shadow:0 6px 16px -6px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.15);
+  }
+  header.top h1{
+    font-size:21px;
+    margin:0 0 3px 0;
+    color:#fff;
+    letter-spacing:.2px;
+    font-weight:650;
+  }
+  header.top .eyebrow{
+    font-size:10.5px;
+    letter-spacing:1.6px;
+    color:#8fd9e6;
+    font-weight:700;
+    text-transform:uppercase;
+    margin:0 0 4px 0;
+  }
+  header.top .sub{
+    font-size:12.5px;
+    color:#c3d4e0;
+  }
+  .toolbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    position:relative;
+  }
+  .tabs{
+    display:flex;
+    gap:4px;
+    background:rgba(255,255,255,.08);
+    padding:4px;
+    border-radius:11px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+  }
+  .tab-btn{
+    border:none;
+    background:transparent;
+    padding:8px 18px;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.4px;
+    color:#c3d4e0;
+    border-radius:8px;
+    cursor:pointer;
+    transition:all .18s ease;
+  }
+  .tab-btn:hover{ color:#fff; }
+  .tab-btn.active{
+    background:#fff;
+    color:var(--navy-900);
+    box-shadow:0 4px 10px rgba(0,0,0,.25);
+  }
+  .print-btn{
+    border:1px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    padding:8px 18px;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.2px;
+    border-radius:9px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .print-btn:hover{ background:rgba(255,255,255,.16); border-color:rgba(255,255,255,.55); }
+  #load-btn{ border-color:rgba(255,255,255,.35); }
+  .load-msg{
+    font-size:12px;
+    margin:6px 4px 0 4px;
+    min-height:16px;
+    font-weight:600;
+  }
+  .load-msg.ok{ color:#1c7a4d; }
+  .load-msg.err{ color:#b3372c; }
+
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  .meta-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:12px;
+    color:var(--muted);
+    margin:0 2px 12px 2px;
+    letter-spacing:.2px;
+  }
+  .meta-bar strong{ color:var(--navy-800); }
+  .meta-bar .count{
+    background:var(--teal-light);
+    color:var(--teal);
+    font-weight:700;
+    padding:4px 12px;
+    border-radius:999px;
+    box-shadow: inset 0 0 0 1px rgba(12,124,146,.15);
+  }
+
+  .table-wrap{
+    overflow-x:auto;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:#fff;
+    box-shadow: var(--card-shadow);
+  }
+  table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:12.5px;
+  }
+  table.dig{ font-size:13px; }
+  thead th{
+    position:sticky;
+    top:0;
+    background:linear-gradient(180deg, var(--navy-800), var(--navy-900));
+    color:#fff;
+    text-align:left;
+    padding:10px 12px;
+    font-weight:650;
+    font-size:11.5px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    white-space:nowrap;
+    border-right:1px solid rgba(255,255,255,.10);
+  }
+  tbody td{
+    padding:8px 12px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+    color:var(--ink);
+  }
+  tbody tr:nth-child(even){ background:var(--stripe); }
+  tbody tr:hover{ background:var(--teal-light); }
+  td.num, th.num{ text-align:right; font-variant-numeric: tabular-nums; }
+  td.center{ text-align:center; }
+
+  /* Columna de acciones (eliminar registro) */
+  th.col-acc, td.col-acc{ width:1%; text-align:center; padding-left:6px; padding-right:6px; }
+  .btn-del{
+    border:none; background:transparent; color:#b3372c;
+    font-size:15px; line-height:1; cursor:pointer;
+    padding:4px 8px; border-radius:6px; opacity:.55;
+  }
+  tbody tr:hover .btn-del, .btn-del:focus{ opacity:1; background:#fbe9e7; }
+  .btn-undo{
+    margin-left:10px; border:1px solid #0c7c92; background:#fff; color:#0c7c92;
+    font-size:12px; font-weight:700; padding:2px 10px; border-radius:999px; cursor:pointer;
+  }
+  .btn-undo:hover{ background:#e6f2f4; }
+
+  footer.note{
+    margin-top:12px;
+    font-size:11px;
+    color:#93a3ab;
+    text-align:right;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    font-weight:600;
+  }
+
+  /* ---------- IMPRESION: VERTICAL (PORTRAIT), igual que el Excel ---------- */
+  @page{
+    size: A4 portrait;
+    margin: 4mm 8mm 10mm 8mm;
+  }
+  @media print{
+    body{ background:#fff; padding:0; margin:0; }
+    .toolbar, .print-btn, .meta-bar .hint, .load-msg{ display:none !important; }
+    .col-acc{ display:none !important; }
+    #table-seguridad thead th:nth-last-child(2), #table-seguridad tbody td:nth-last-child(2){ border-right:none !important; }
+    #panel-digitador .meta-bar{ display:none !important; }
+    #panel-digitador footer.note{ display:none !important; }
+    #panel-seguridad .meta-bar{ display:none !important; }
+    #panel-seguridad footer.note{ display:none !important; }
+    .tabs{ display:none !important; }
+    header.top{ background:none !important; box-shadow:none !important; border-radius:0 !important; border-bottom:2px solid #000; margin-bottom:0; padding:0 0 2px; justify-content:center; text-align:center; }
+    header.top::before{ display:none !important; }
+    .title-mark{ display:none !important; }
+    header.top .eyebrow{ display:none !important; }
+    .title-group{ justify-content:center; width:100%; }
+    header.top h1{ color:#000; font-size:16px; margin:0; }
+    body.tab-seguridad header.top h1{ font-size:12px; }
+    header.top .sub{ color:#333; }
+    .panel{ display:none !important; }
+    .panel.active{ display:block !important; }
+    .table-wrap{ border:none; border-radius:0; overflow:visible; margin-top:0; text-align:center; }
+    table{ table-layout:auto !important; width:auto !important; margin:0 auto !important; font-size:var(--print-font-size); border:1px solid #0f3057; border-collapse:collapse; }
+    table.dig{ font-size:var(--print-font-size); font-family:Arial, sans-serif; }
+    #table-seguridad{ font-size:var(--print-font-size); font-family:Arial, sans-serif; width:100% !important; }
+    thead th{ background:#0f3057 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; color:#fff !important; height:var(--print-row-height); padding:0 var(--print-pad-h); border-right:1px solid rgba(255,255,255,.25); border-bottom:1px solid #0f3057; text-align:left; line-height:var(--print-row-height); overflow:hidden; }
+    thead th:last-child{ border-right:none; }
+    tbody td{ height:var(--print-row-height); padding:0 var(--print-pad-h); border-bottom:.35px solid #c7d0d6; border-right:.35px solid #d7dee2; text-align:left; line-height:var(--print-row-height); overflow:hidden; }
+    tbody td:last-child{ border-right:none; }
+    tbody tr:nth-child(even){ background:#f5f8f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    tbody tr:last-child td{ border-bottom:none; }
+    thead{ display:table-header-group; }
+    tr{ break-inside:avoid; page-break-inside:avoid; }
+    .meta-bar{ font-size:9px; }
+    .meta-bar .count{ background:none; color:#000; padding:0; font-weight:700; }
+    td.num, th.num{ text-align:right !important; }
+    td.center{ text-align:center !important; }
+    #table-digitador .col-ULTAREACAMA{ display:none !important; }
+  }
+</style>
+</head>
+<body class="tab-digitador">
+<div class="sheet">
+
+  <header class="top">
+    <div class="title-group">
+      <div class="title-mark" aria-hidden="true">HL</div>
+      <div>
+        <div class="eyebrow">H.I Víctor Alfredo Lazo Peralta</div>
+        <h1 id="header-title">Censo de Hospitalización</h1>
+        <div class="sub" id="header-sub">Reporte de pacientes hospitalizados</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="digitador" onclick="showTab('digitador')">DIGITADOR</button>
+        <button class="tab-btn" data-tab="seguridad" onclick="showTab('seguridad')">SEGURIDAD</button>
+      </div>
+      <button class="print-btn" id="load-btn" onclick="document.getElementById('file-input').click()">Cargar archivo</button>
+      <input type="file" id="file-input" accept=".txt,.csv" style="display:none">
+      <button class="print-btn" onclick="window.print()">Imprimir</button>
+    </div>
+  </header>
+  <div id="load-msg" class="load-msg"></div>
+
+  <section id="panel-digitador" class="panel active">
+    <div class="meta-bar">
+      <span>Pestaña <strong>DIGITADOR</strong></span>
+      <span class="count" id="count-digitador">0 pacientes</span>
+    </div>
+    <div class="table-wrap">
+      <table class="dig" id="table-digitador">
+        <thead><tr id="head-digitador"></tr></thead>
+        <tbody id="body-digitador"></tbody>
+      </table>
+    </div>
+    <footer class="note">CENSOACTUALIZADO · DIGITADOR</footer>
+  </section>
+
+  <section id="panel-seguridad" class="panel">
+    <div class="meta-bar">
+      <span>Pestaña <strong>SEGURIDAD</strong></span>
+      <span class="count" id="count-seguridad">0 pacientes</span>
+    </div>
+    <div class="table-wrap">
+      <table id="table-seguridad">
+        <thead><tr id="head-seguridad"></tr></thead>
+        <tbody id="body-seguridad"></tbody>
+      </table>
+    </div>
+    <footer class="note">CENSOACTUALIZADO · SEGURIDAD</footer>
+  </section>
+
+</div>
+
+<script>
+const CENSO_DATA = {"seg_headers": ["PACIENTE", "DNI", "EDAD", "SEXO", "ULTSERVINTERN", "ULTCAMA", "FEC_INGR", "DH"], "seg_data": [["ABANO VEINTEMILLAS JOSE EDINSON", "05061852", 67, "M", "MEDICINA GENERAL", "T005", "12/12/2025", 12], ["APUCUSI QUISPE SABINA", "47850083", 34, "F", "CIRUGIA GENERAL", "C-36", "23/12/2025", 1], ["BELLIDO ZURITA GLADIS PIERINA", "43734519", 49, "F", "MEDICINA GENERAL", "C-20", "21/12/2025", 3], ["CACERES \tMICHI RN.", "17026529403", 0, "M", "NEONATOLOGIA", "GN26", "24/12/2025", 1], ["CALLAPIÑA CRUZ ADRIAN", "04825931", 71, "M", "MEDICINA GENERAL", "OB02", "20/12/2025", 4], ["CHILLIHUANI BAEZ LIZBETH SUSANA", "79054146", 26, "F", "OBSTETRICIA", 30, "24/12/2025", 1], ["COA YARICE ROOSVEL", "04800672", 62, "M", "ORTOPEDIA Y TRAUMATOLOGIA", "C-22", "23/12/2025", 1], ["DAVILA SANCHEZ ALCIRA DENNISSE", "70938784", 32, "F", "OBSTETRICIA", 29, "23/12/2025", 1], ["DURAND USCA AILANA IDARA", "93270491", 2, "F", "PEDIATRIA", "PD-11", "22/12/2025", 2], ["ENRIQUEZ SANTOS DORUCK ALEXANDER", "94115905", 0, "M", "PEDIATRIA", "PD-14", "22/12/2025", 2], ["ESCOBAR ARAMBULO RN", "17322511703", 0, "F", "NEONATOLOGIA", "UCN02", "21/12/2025", 3], ["ESPINOZA MARON RN1", "17752972904", 0, "F", "NEONATOLOGIA", "GN28", "23/12/2025", 1], ["ESPINOZA MARON RN2", "17752972905", 0, "F", "NEONATOLOGIA", "GN25", "23/12/2025", 1], ["FLORES YBANA LESLIE GABRIELA", "77240958", 30, "F", "OBSTETRICIA", "C-33", "22/12/2025", 2], ["GRIFA DE IBAÑEZ MAGNOLIA", "05063642", 55, "F", "MEDICINA GENERAL", "DE-16", "22/12/2025", 2], ["HIDALGO CRUZ MARIA FATIMA", "04811914", 60, "F", "MEDICINA GENERAL", "DE-17", "22/12/2025", 2], ["HUAMAN VICENTE MERCEDES", "23849864", 67, "F", "MEDICINA GENERAL", "DE-15", "22/12/2025", 2], ["HUAMBO VIZCARRA MIGUEL ANGEL LEON", "29309340", 61, "M", "MEDICINA INTENSIVA", "U03", "09/12/2025", 15], ["HUARACHA RAMOS MARILUZ", "42451514", 44, "F", "CIRUGIA GENERAL", "C-37", "23/12/2025", 1], ["MARON HUAMANI YANET", "77529729", 29, "F", "GINECOLOGIA Y OBSTETRICIA", "C-25", "23/12/2025", 1], ["MICHI YAHUARCANI NELIDA", "70265294", 34, "F", "OBSTETRICIA", "C-32", "24/12/2025", 1], ["MIRANDA APAZA NATALI", "44301284", 39, "F", "CIRUGIA GENERAL", "C-35", "23/12/2025", 1], ["NINAYA CHILLIHUANI RN", "17905414602", 0, "M", "NEONATOLOGIA", "PD-12", "24/12/2025", 1], ["OLAZAVAL LAZARTE EDGARD EDUARDO", "23850674", 66, "M", "MEDICINA GENERAL", "T003", "19/12/2025", 5], ["PUENTE DE LA VEGA GALINDO RENY RENE", "77686179", 24, "M", "ORTOPEDIA Y TRAUMATOLOGIA", "C-40", "22/12/2025", 2], ["QUISPE SALAZAR RN", "14411707403", 0, "M", "NEONATOLOGIA", "GN27", "23/12/2025", 1], ["RAMOS CONDORI WILFREDO", "04825575", 61, "M", "ORTOPEDIA Y TRAUMATOLOGIA", "C-42", "19/12/2025", 5], ["SALAZAR LUQUE KARIN YANET", "44117074", 38, "F", "GINECOLOGIA Y OBSTETRICIA", 30, "22/12/2025", 2], ["TINTA ÑAUPA MAMERTO", "29689405", 77, "M", "MEDICINA GENERAL", "CA10", "22/12/2025", 2], ["TOVAR NEIRA JUAN MARTIN", "29214988", 86, "M", "MEDICINA INTENSIVA", "U01", "24/12/2025", 1], ["VILLALOBOS TTITO SOL NICOL", "76680023", 20, "F", "OBSTETRICIA", 28, "23/12/2025", 1]], "dig_headers": ["ULTSERVINTERN", "FEC_INGR", "DNI", "PACIENTE", "ANNOS", "SEXO", "DESTIPSEG", "ULTCAMA", "ULTAREACAMA", "CANTDIASHOSP"], "dig_data": [["CIRUGIA GENERAL", "23/12/2025", "44301284", "MIRANDA APAZA NATALI", 39, "F", "S.REGULAR   D.LEG.1057(CAS)", "C-35", "", ""], ["CIRUGIA GENERAL", "23/12/2025", "47850083", "APUCUSI QUISPE SABINA", 34, "F", "OBLIGATORIO", "C-36", "", ""], ["CIRUGIA GENERAL", "23/12/2025", "42451514", "HUARACHA RAMOS MARILUZ", 44, "F", "OBLIGATORIO", "C-37", "", ""], ["GINECOLOGIA Y OBSTETRICIA", "22/12/2025", "44117074", "SALAZAR LUQUE KARIN YANET", 38, "F", "OBLIGATORIO", 30, "", ""], ["GINECOLOGIA Y OBSTETRICIA", "23/12/2025", "77529729", "MARON HUAMANI YANET", 29, "F", "OBLIGATORIO", "C-25", "", ""], ["MEDICINA GENERAL", "19/12/2025", "23850674", "OLAZAVAL LAZARTE EDGARD EDUARDO", 66, "M", "OBLIGATORIO", "T003", "", ""], ["MEDICINA GENERAL", "20/12/2025", "04825931", "CALLAPIÑA CRUZ ADRIAN", 71, "M", "BENEFICIARIO LEY 30425", "OB02", "", ""], ["MEDICINA GENERAL", "12/12/2025", "05061852", "ABANO VEINTEMILLAS JOSE EDINSON", 67, "M", "BENEFICIARIO LEY 30425", "T005", "", ""], ["MEDICINA GENERAL", "22/12/2025", "29689405", "TINTA ÑAUPA MAMERTO", 77, "M", "PENSIONISTA", "CA10", "", ""], ["MEDICINA GENERAL", "21/12/2025", "43734519", "BELLIDO ZURITA GLADIS PIERINA", 49, "F", "OBLIGATORIO", "C-20", "", ""], ["MEDICINA GENERAL", "22/12/2025", "23849864", "HUAMAN VICENTE MERCEDES", 67, "F", "OBLIGATORIO", "DE-15", "", ""], ["MEDICINA GENERAL", "22/12/2025", "05063642", "GRIFA DE IBAÑEZ MAGNOLIA", 55, "F", "S.REGULAR   D.LEG.1057(CAS)", "DE-16", "", ""], ["MEDICINA GENERAL", "22/12/2025", "04811914", "HIDALGO CRUZ MARIA FATIMA", 60, "F", "BENEFICIARIO LEY 30425", "DE-17", "", ""], ["MEDICINA INTENSIVA", "09/12/2025", "29309340", "HUAMBO VIZCARRA MIGUEL ANGEL LEON", 61, "M", "OBLIGATORIO", "U03", "HOSPITALIZACION", ""], ["MEDICINA INTENSIVA", "24/12/2025", "29214988", "TOVAR NEIRA JUAN MARTIN", 86, "M", "OBLIGATORIO", "U01", "", ""], ["NEONATOLOGIA", "23/12/2025", "14411707403", "QUISPE SALAZAR RN", 0, "M", "TERCERO", "GN27", "HOSPITALIZACION", ""], ["NEONATOLOGIA", "24/12/2025", "17905414602", "NINAYA CHILLIHUANI RN", 0, "M", "TERCERO", "PD-12", "", ""], ["NEONATOLOGIA", "21/12/2025", "17322511703", "ESCOBAR ARAMBULO RN", 0, "F", "TERCERO", "UCN02", "HOSPITALIZACION", ""], ["NEONATOLOGIA", "23/12/2025", "17752972905", "ESPINOZA MARON RN2", 0, "F", "TERCERO", "GN25", "", ""], ["NEONATOLOGIA", "24/12/2025", "17026529403", "CACERES \tMICHI RN.", 0, "M", "TERCERO", "GN26", "", ""], ["NEONATOLOGIA", "23/12/2025", "17752972904", "ESPINOZA MARON RN1", 0, "F", "TERCERO", "GN28", "HOSPITALIZACION", ""], ["OBSTETRICIA", "23/12/2025", "70938784", "DAVILA SANCHEZ ALCIRA DENNISSE", 32, "F", "OBLIGATORIO", 29, "HOSPITALIZACION", ""], ["OBSTETRICIA", "23/12/2025", "76680023", "VILLALOBOS TTITO SOL NICOL", 20, "F", "OBLIGATORIO", 28, "HOSPITALIZACION", ""], ["OBSTETRICIA", "24/12/2025", "79054146", "CHILLIHUANI BAEZ LIZBETH SUSANA", 26, "F", "OBLIGATORIO", 30, "", ""], ["OBSTETRICIA", "24/12/2025", "70265294", "MICHI YAHUARCANI NELIDA", 34, "F", "OBLIGATORIO", "C-32", "HOSPITALIZACION", ""], ["OBSTETRICIA", "22/12/2025", "77240958", "FLORES YBANA LESLIE GABRIELA", 30, "F", "OBLIGATORIO", "C-33", "HOSPITALIZACION", ""], ["ORTOPEDIA Y TRAUMATOLOGIA", "19/12/2025", "04825575", "RAMOS CONDORI WILFREDO", 61, "M", "S.REGULAR   D.LEG.1057(CAS)", "C-42", "HOSPITALIZACION", ""], ["ORTOPEDIA Y TRAUMATOLOGIA", "23/12/2025", "04800672", "COA YARICE ROOSVEL", 62, "M", "OBLIGATORIO", "C-22", "HOSPITALIZACION", ""], ["ORTOPEDIA Y TRAUMATOLOGIA", "22/12/2025", "77686179", "PUENTE DE LA VEGA GALINDO RENY RENE", 24, "M", "OBLIGATORIO", "C-40", "", ""], ["PEDIATRIA", "22/12/2025", "93270491", "DURAND USCA AILANA IDARA", 2, "F", "OBLIGATORIO", "PD-11", "", ""], ["PEDIATRIA", "22/12/2025", "94115905", "ENRIQUEZ SANTOS DORUCK ALEXANDER", 0, "M", "OBLIGATORIO", "PD-14", "HOSPITALIZACION", ""]]};
+
+const NUMERIC_COLS = {
+  digitador: new Set(['ANNOS', 'CANTDIASHOSP']),
+  seguridad: new Set(['EDAD','DH'])
+};
+const CENTER_COLS = {
+  digitador: new Set(['SEXO']),
+  seguridad: new Set(['SEXO'])
+};
+const HIDDEN_COLS = {
+  digitador: new Set(['CANTDIASHOSP']),
+  seguridad: new Set()
+};
+
+function buildTable(key, headers, rows){
+  const headEl = document.getElementById('head-' + key);
+  const bodyEl = document.getElementById('body-' + key);
+  const numSet = NUMERIC_COLS[key] || new Set();
+  const centerSet = CENTER_COLS[key] || new Set();
+  const hiddenSet = HIDDEN_COLS[key] || new Set();
+
+  const src = (key === 'digitador') ? CENSO_DATA.dig_data : CENSO_DATA.seg_data;
+
+  headEl.innerHTML = headers.filter(h => !hiddenSet.has(h)).map(h => {
+    const cls = 'col-' + h + (numSet.has(h) ? ' num' : (centerSet.has(h) ? ' center' : ''));
+    return `<th class="${cls}">${h}</th>`;
+  }).join('') + '<th class="col-acc"></th>';
+
+  bodyEl.innerHTML = rows.map(row => {
+    const idxOrigen = src.indexOf(row); // posición real en los datos (sirve aunque la tabla esté ordenada)
+    const celdaAcc = `<td class="col-acc"><button class="btn-del" data-key="${key}" data-idx="${idxOrigen}" title="Eliminar registro" aria-label="Eliminar registro">✕</button></td>`;
+    return '<tr>' + row.map((v, i) => {
+      const h = headers[i];
+      if(hiddenSet.has(h)) return '';
+      const cls = 'col-' + h + (numSet.has(h) ? ' num' : (centerSet.has(h) ? ' center' : ''));
+      return `<td class="${cls}">${v === null || v === undefined ? '' : v}</td>`;
+    }).join('') + celdaAcc + '</tr>';
+  }).join('');
+
+  document.getElementById('count-' + key).textContent = rows.length + (rows.length === 1 ? ' paciente' : ' pacientes');
+}
+
+// ---------- Eliminar registros ----------
+const pilaEliminados = []; // para poder deshacer (último eliminado primero)
+
+function mismoPaciente(fila, headers, dni, nombre){
+  return String(fila[headers.indexOf('DNI')]) === String(dni) &&
+         String(fila[headers.indexOf('PACIENTE')]) === String(nombre);
+}
+
+function eliminarRegistro(key, idx){
+  const esDig = key === 'digitador';
+  const src = esDig ? CENSO_DATA.dig_data : CENSO_DATA.seg_data;
+  const hdrs = esDig ? CENSO_DATA.dig_headers : CENSO_DATA.seg_headers;
+  const fila = src[idx];
+  if(!fila) return;
+
+  const nombre = fila[hdrs.indexOf('PACIENTE')];
+  const dni = fila[hdrs.indexOf('DNI')];
+  if(!confirm('¿Eliminar este registro?\n\n' + String(nombre).trim() + '  (DNI ' + dni + ')\n\nSe quitará de DIGITADOR y de SEGURIDAD.')) return;
+
+  // Se quita de ambas listas (mismo DNI y nombre) para que las dos pestañas queden iguales
+  const eliminado = { dig: null, seg: null, nombre: String(nombre).trim() };
+  [['dig', CENSO_DATA.dig_data, CENSO_DATA.dig_headers],
+   ['seg', CENSO_DATA.seg_data, CENSO_DATA.seg_headers]].forEach(([tag, datos, h]) => {
+    const i = datos.findIndex(f => mismoPaciente(f, h, dni, nombre));
+    if(i !== -1){ eliminado[tag] = { i, fila: datos.splice(i, 1)[0] }; }
+  });
+  pilaEliminados.push(eliminado);
+
+  refrescarTablas();
+  guardarEnStorage();
+  loadMsg.innerHTML = 'Se eliminó a ' + eliminado.nombre.replace(/</g,'&lt;') + '. <button class="btn-undo" onclick="deshacerEliminacion()">Deshacer</button>';
+  loadMsg.className = 'load-msg ok';
+}
+
+function deshacerEliminacion(){
+  const e = pilaEliminados.pop();
+  if(!e) return;
+  if(e.dig) CENSO_DATA.dig_data.splice(e.dig.i, 0, e.dig.fila);
+  if(e.seg) CENSO_DATA.seg_data.splice(e.seg.i, 0, e.seg.fila);
+  refrescarTablas();
+  guardarEnStorage();
+  loadMsg.textContent = 'Se restauró a ' + e.nombre + '.';
+  loadMsg.className = 'load-msg ok';
+}
+
+function refrescarTablas(){
+  buildTable('digitador', CENSO_DATA.dig_headers, CENSO_DATA.dig_data);
+  buildTable('seguridad', CENSO_DATA.seg_headers, CENSO_DATA.seg_data);
+}
+
+['digitador', 'seguridad'].forEach(key => {
+  document.getElementById('body-' + key).addEventListener('click', ev => {
+    const btn = ev.target.closest('.btn-del');
+    if(btn) eliminarRegistro(btn.dataset.key, Number(btn.dataset.idx));
+  });
+});
+
+// ---------- Persistencia local: mantener el último archivo cargado ----------
+const STORAGE_KEY = 'censo_hospitalizacion_datos';
+
+function guardarEnStorage(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      dig_headers: CENSO_DATA.dig_headers,
+      dig_data: CENSO_DATA.dig_data,
+      seg_headers: CENSO_DATA.seg_headers,
+      seg_data: CENSO_DATA.seg_data
+    }));
+  }catch(e){ /* si el almacenamiento no está disponible, no interrumpe la app */ }
+}
+
+function cargarDeStorage(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const guardado = JSON.parse(raw);
+    if(guardado && guardado.dig_data && guardado.seg_data){
+      CENSO_DATA.dig_headers = guardado.dig_headers || CENSO_DATA.dig_headers;
+      CENSO_DATA.dig_data = guardado.dig_data;
+      CENSO_DATA.seg_headers = guardado.seg_headers || CENSO_DATA.seg_headers;
+      CENSO_DATA.seg_data = guardado.seg_data;
+      return true;
+    }
+  }catch(e){ /* ignora datos corruptos y usa los de ejemplo */ }
+  return false;
+}
+
+cargarDeStorage(); // recupera el último archivo cargado, si existe
+
+buildTable('digitador', CENSO_DATA.dig_headers, CENSO_DATA.dig_data);
+buildTable('seguridad', CENSO_DATA.seg_headers, CENSO_DATA.seg_data);
+
+// ---------- Carga de archivo de texto delimitado por | ----------
+const DIG_HEADERS = CENSO_DATA.dig_headers; // orden objetivo de columnas
+const fileInput = document.getElementById('file-input');
+const loadMsg = document.getElementById('load-msg');
+
+function normalizeHeader(h){
+  return (h || '').toString().trim().toUpperCase();
+}
+
+function parseDelimitedText(text){
+  // separa por lineas, ignora vacias, admite CRLF
+  const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+  if(lines.length < 1) return { rows: [], error: 'El archivo está vacío.' };
+
+  const firstCols = lines[0].split('|').map(c => c.trim());
+  const firstIsHeader = firstCols.some(c => DIG_HEADERS.some(h => normalizeHeader(h) === normalizeHeader(c)));
+
+  let colMap; // indice de columna del archivo -> nombre de encabezado destino
+  let dataLines;
+
+  if(firstIsHeader){
+    colMap = firstCols.map(c => {
+      const match = DIG_HEADERS.find(h => normalizeHeader(h) === normalizeHeader(c));
+      return match || null;
+    });
+    dataLines = lines.slice(1);
+  } else {
+    // sin fila de encabezado: se asume el mismo orden que DIG_HEADERS
+    colMap = DIG_HEADERS.slice(0, firstCols.length);
+    dataLines = lines;
+  }
+
+  const rows = dataLines.map(line => line.split('|').map(c => c.trim()));
+
+  // arma cada fila en el orden fijo de DIG_HEADERS
+  const finalRows = rows.map(cells => {
+    return DIG_HEADERS.map(h => {
+      const idx = colMap.indexOf(h);
+      if(idx === -1 || idx >= cells.length) return '';
+      const val = cells[idx];
+      return ((h === 'ANNOS' || h === 'CANTDIASHOSP') && val !== '' && !isNaN(val)) ? Number(val) : val;
+    });
+  });
+
+  return { rows: finalRows, error: null };
+}
+
+function parseFechaDDMMYYYY(str){
+  if(!str) return null;
+  const parts = str.toString().trim().split('/');
+  if(parts.length !== 3) return null;
+  const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+  if(isNaN(d) || isNaN(m) || isNaN(y)) return null;
+  return new Date(y, m - 1, d);
+}
+
+function calcularDH(fechaIngresoStr){
+  const ingreso = parseFechaDDMMYYYY(fechaIngresoStr);
+  if(!ingreso) return '';
+  const hoy = new Date();
+  const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const diffMs = hoySinHora - ingreso;
+  const dias = Math.floor(diffMs / 86400000) + 1;
+  return dias > 0 ? dias : 1;
+}
+
+// Deriva las filas de SEGURIDAD a partir de las filas de DIGITADOR ya cargadas
+function derivarSeguridadDesdeDigitador(digRows){
+  const idx = h => DIG_HEADERS.indexOf(h);
+  return digRows.map(row => {
+    const paciente = row[idx('PACIENTE')];
+    const dni = row[idx('DNI')];
+    const edad = row[idx('ANNOS')];
+    const sexo = row[idx('SEXO')];
+    const servicio = row[idx('ULTSERVINTERN')];
+    const cama = row[idx('ULTCAMA')];
+    const fecIngr = row[idx('FEC_INGR')];
+    const idxDias = idx('CANTDIASHOSP');
+    let dh = idxDias !== -1 ? row[idxDias] : '';
+    if(dh === '' || dh === undefined || dh === null){
+      dh = calcularDH(fecIngr); // respaldo si el archivo no trae la columna
+    } else if(!isNaN(dh)){
+      dh = Number(dh);
+    }
+    return [paciente, dni, edad, sexo, servicio, cama, fecIngr, dh];
+  });
+}
+
+fileInput.addEventListener('change', function(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const { rows, error } = parseDelimitedText(e.target.result);
+      if(error){
+        loadMsg.textContent = error;
+        loadMsg.className = 'load-msg err';
+        return;
+      }
+      pilaEliminados.length = 0;
+      CENSO_DATA.dig_data = rows;
+      buildTable('digitador', DIG_HEADERS, rows);
+
+      const segRows = derivarSeguridadDesdeDigitador(rows);
+      CENSO_DATA.seg_data = segRows;
+      buildTable('seguridad', CENSO_DATA.seg_headers, segRows);
+
+      guardarEnStorage();
+
+      showTab('digitador');
+      loadMsg.textContent = `Se cargaron ${rows.length} registros de "${file.name}" en DIGITADOR y SEGURIDAD.`;
+      loadMsg.className = 'load-msg ok';
+    } catch(err){
+      loadMsg.textContent = 'No se pudo leer el archivo: ' + err.message;
+      loadMsg.className = 'load-msg err';
+    }
+  };
+  reader.onerror = function(){
+    loadMsg.textContent = 'Error al leer el archivo.';
+    loadMsg.className = 'load-msg err';
+  };
+  reader.readAsText(file, 'UTF-8');
+  fileInput.value = '';
+});
+
+// ---------- Título dinámico DIGITADOR (solo al imprimir) ----------
+const DIAS = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+function getTituloHospitalizacion(){
+  const hoy = new Date();
+  const dia = DIAS[hoy.getDay()];
+  const numDia = hoy.getDate();
+  const mes = MESES[hoy.getMonth()];
+  const anio = hoy.getFullYear();
+  return `HOSPITALIZACION ${dia}, ${numDia} DE ${mes} DE ${anio}`;
+}
+
+let headerOriginal = null;
+
+let ordenDigitadorAplicado = false;
+let ordenSeguridadAplicado = false;
+
+function ordenarDigitadorParaImprimir(){
+  const panelDigitador = document.getElementById('panel-digitador');
+  if(!panelDigitador.classList.contains('active')) return;
+  const idxServicio = DIG_HEADERS.indexOf('ULTSERVINTERN');
+  if(idxServicio === -1) return;
+  const filasOrdenadas = [...CENSO_DATA.dig_data].sort((a, b) =>
+    (a[idxServicio] || '').toString().localeCompare((b[idxServicio] || '').toString(), 'es', { sensitivity: 'base' })
+  );
+  buildTable('digitador', DIG_HEADERS, filasOrdenadas);
+  ordenDigitadorAplicado = true;
+}
+
+function restaurarOrdenDigitador(){
+  if(ordenDigitadorAplicado){
+    buildTable('digitador', DIG_HEADERS, CENSO_DATA.dig_data);
+    ordenDigitadorAplicado = false;
+  }
+}
+
+function ordenarSeguridadParaImprimir(){
+  const panelSeguridad = document.getElementById('panel-seguridad');
+  if(!panelSeguridad.classList.contains('active')) return;
+  const idxPaciente = CENSO_DATA.seg_headers.indexOf('PACIENTE');
+  if(idxPaciente === -1) return;
+  const filasOrdenadas = [...CENSO_DATA.seg_data].sort((a, b) =>
+    (a[idxPaciente] || '').toString().localeCompare((b[idxPaciente] || '').toString(), 'es', { sensitivity: 'base' })
+  );
+  buildTable('seguridad', CENSO_DATA.seg_headers, filasOrdenadas);
+  ordenSeguridadAplicado = true;
+}
+
+function restaurarOrdenSeguridad(){
+  if(ordenSeguridadAplicado){
+    buildTable('seguridad', CENSO_DATA.seg_headers, CENSO_DATA.seg_data);
+    ordenSeguridadAplicado = false;
+  }
+}
+
+// ---------- Auto-escalado de impresión: que ~45-47 filas ocupen media hoja A4, letra grande como en Excel ----------
+// Misma técnica que usa Excel: se fija la altura de cada fila y el texto se centra
+// dentro de esa altura exacta (sin el interlineado "extra" que agrega un navegador
+// por defecto). Así casi toda la altura disponible se destina a la letra en sí.
+const PX_POR_MM = 96 / 25.4;              // conversión física fija que usa CSS, no depende de la impresora
+const ALTO_UTIL_MM = 297 - 4 - 10;        // alto de A4 menos los márgenes @page (4mm arriba, 10mm abajo)
+const PROPORCION_HOJA = 0.55;             // fracción de la hoja que puede ocupar la tabla (~media hoja, con un poco de margen)
+const FONT_BASE = 11;                     // px, tamaño "normal" cuando hay pocas filas
+const ROW_HEIGHT_BASE = 16;               // px, alto de fila cuando hay pocas filas
+const PADH_BASE = 4;                      // relleno horizontal (separación entre columnas), no afecta el alto
+const MIN_FONT_PX = 7;                    // piso de legibilidad: nunca imprime más chico que esto
+const RATIO_FUENTE_FILA = 0.82;           // proporción letra/alto-de-fila (deja apenas el margen para que no se recorten g, j, y)
+
+function ajustarEscalaImpresion(){
+  const panelDigitador = document.getElementById('panel-digitador');
+  const panelSeguridad = document.getElementById('panel-seguridad');
+  const panelActivo = panelDigitador.classList.contains('active') ? panelDigitador
+                     : panelSeguridad.classList.contains('active') ? panelSeguridad
+                     : null;
+  const raiz = document.documentElement;
+  if(!panelActivo){
+    restaurarEscalaImpresion();
+    return;
+  }
+
+  const tabla = panelActivo.querySelector('table');
+  if(!tabla) return;
+
+  const filas = tabla.querySelectorAll('tbody tr').length;
+  const totalFilas = filas + 1; // +1 por la fila de encabezado
+
+  // vuelve al tamaño base para medir la altura real del encabezado del reporte
+  raiz.style.setProperty('--print-font-size', FONT_BASE + 'px');
+  raiz.style.setProperty('--print-row-height', ROW_HEIGHT_BASE + 'px');
+  raiz.style.setProperty('--print-pad-h', PADH_BASE + 'px');
+  void tabla.offsetHeight; // fuerza a recalcular el layout antes de medir
+
+  const headerEl = document.querySelector('header.top');
+  const altoHojaPx = ALTO_UTIL_MM * PX_POR_MM;
+  const altoCabeceraPx = headerEl ? headerEl.getBoundingClientRect().height : 0;
+  const altoObjetivoPx = (altoHojaPx * PROPORCION_HOJA) - altoCabeceraPx - 6; // -6px de margen de seguridad
+
+  if(altoObjetivoPx <= 0 || totalFilas <= 0) return;
+
+  let altoFilaObjetivo = altoObjetivoPx / totalFilas;
+  altoFilaObjetivo = Math.min(altoFilaObjetivo, ROW_HEIGHT_BASE); // nunca más grande que el tamaño normal
+
+  let nuevoFont = Math.round(altoFilaObjetivo * RATIO_FUENTE_FILA * 10) / 10;
+  nuevoFont = Math.max(MIN_FONT_PX, Math.min(FONT_BASE, nuevoFont));
+  // si el piso de legibilidad obliga a un alto mayor al calculado, se respeta ese alto
+  // (la tabla puede pasar de media hoja, mejor eso que letra ilegible)
+  const nuevoAltoFila = Math.max(altoFilaObjetivo, nuevoFont / RATIO_FUENTE_FILA);
+  const nuevoAltoFilaRedondeado = Math.round(nuevoAltoFila * 10) / 10;
+
+  raiz.style.setProperty('--print-font-size', nuevoFont + 'px');
+  raiz.style.setProperty('--print-row-height', nuevoAltoFilaRedondeado + 'px');
+  raiz.style.setProperty('--print-pad-h', PADH_BASE + 'px');
+
+  const nombrePanel = panelActivo.id === 'panel-digitador' ? 'DIGITADOR' : 'SEGURIDAD';
+  console.log(
+    `[Impresión ${nombrePanel}] ${filas} filas | tamaño de letra: ${nuevoFont}px | ` +
+    `alto de fila: ${nuevoAltoFilaRedondeado}px | objetivo de alto: ${Math.round(altoFilaObjetivo*10)/10}px`
+  );
+}
+
+function restaurarEscalaImpresion(){
+  const raiz = document.documentElement;
+  raiz.style.setProperty('--print-font-size', FONT_BASE + 'px');
+  raiz.style.setProperty('--print-row-height', ROW_HEIGHT_BASE + 'px');
+  raiz.style.setProperty('--print-pad-h', PADH_BASE + 'px');
+}
+
+window.addEventListener('beforeprint', function(){
+  const panelDigitador = document.getElementById('panel-digitador');
+  const panelSeguridad = document.getElementById('panel-seguridad');
+  const panelActivo = (panelDigitador.classList.contains('active')) ? panelDigitador
+                     : (panelSeguridad.classList.contains('active')) ? panelSeguridad
+                     : null;
+  if(panelActivo){
+    const titleEl = document.getElementById('header-title');
+    const subEl = document.getElementById('header-sub');
+    headerOriginal = { title: titleEl.innerHTML, sub: subEl.innerHTML, subDisplay: subEl.style.display };
+    titleEl.textContent = getTituloHospitalizacion();
+    subEl.style.display = 'none';
+  }
+  ordenarDigitadorParaImprimir();
+  ordenarSeguridadParaImprimir();
+  // Ajusta letra y espaciado de la tabla activa para que, con ~45-47 filas,
+  // el listado ocupe aproximadamente media hoja A4 (como el Excel original).
+  // Con menos filas usa el tamaño normal (14px); con más filas reduce hasta
+  // un mínimo legible y, si aun así no entra, sigue en una segunda página.
+  ajustarEscalaImpresion();
+});
+
+window.addEventListener('afterprint', function(){
+  if(headerOriginal){
+    document.getElementById('header-title').innerHTML = headerOriginal.title;
+    const subEl = document.getElementById('header-sub');
+    subEl.innerHTML = headerOriginal.sub;
+    subEl.style.display = headerOriginal.subDisplay;
+    headerOriginal = null;
+  }
+  restaurarOrdenDigitador();
+  restaurarOrdenSeguridad();
+  restaurarEscalaImpresion();
+});
+
+function showTab(name){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+  document.body.classList.remove('tab-digitador', 'tab-seguridad');
+  document.body.classList.add('tab-' + name);
+}
+</script>
+</body>
+</html>
